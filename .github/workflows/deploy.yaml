@@ -69,8 +69,8 @@ jobs:
 
             -   name: Build & push docker image
                 run: |-
-                    docker build -t ${{env.DOCKER_USER_NAME}}/${{github.sha}} . \
-                    docker push ${{env.DOCKER_USER_NAME}}/${{github.sha}}
+                    docker build -t ${{env.DOCKER_USER_NAME}}:${{github.sha}} .
+                    docker push ${{env.DOCKER_USER_NAME}}:${{github.sha}}
                 working-directory: ./nodeapp
 
             -   name: Deploy docker imge to Ec2
@@ -84,5 +84,5 @@ jobs:
                         sudo apt install docker.io -y
                         sudo docker stop node-app || true
                         sudo docker rm node-app || true
-                        sudo docker pull ${{env.DOCKER_USER_NAME}}/${{github.sha}}
-                        sudo docker run -d -p 80:8080 --name node-app ${{env.DOCKER_USER_NAME}}/${{github.sha}}
+                        sudo docker pull ${{env.DOCKER_USER_NAME}}:${{github.sha}}
+                        sudo docker run -d -p 80:8080 --name node-app ${{env.DOCKER_USER_NAME}}:${{github.sha}}
