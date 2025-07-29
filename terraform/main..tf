@@ -1,5 +1,7 @@
 terraform {
   backend "s3" {
+    bucket = "terraform-cicd-githubactions"
+    region = "us-east-1"
     key = "node/terraform.tfstate"
   }
 }

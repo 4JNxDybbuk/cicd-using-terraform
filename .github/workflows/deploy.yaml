@@ -1,0 +1,44 @@
+name: CI/CD using terraform & AWS
+
+on:
+    push:
+        branches: 
+            - dev
+
+env:
+    AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY}}
+    AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY}}
+    AWS_SSH_PRIVATE_KEY: ${{ secrets.AWS_SSH_PRIVATE_KEY}}
+
+jobs:
+
+    deploy-infra:
+        runs-on: ubuntu-latest
+
+        steps:
+
+            -   name: Checkout
+                uses: actions/checkout@v4
+
+            -   name: Setup Terraform
+                uses: hashicorp/setup-terraform@v3
+                with:
+                    terraform_wrapper: false
+                    
+            -   name: Terraform init
+                id: init        
+                run: terraform init
+                working-directory: ./terraform
+
+            -   name: Terraform plan
+                id: plan
+                run: |-
+                    terraform plan \
+                    -var="private_key=$AWS_SSH_PRIVATE_KEY" \
+                    -out=PLAN
+                working-directory: ./terraform
+
+            -   name: Terraform apply
+                id: apply
+                run: terraform apply PLAN 
+                working-directory: ./terraform
