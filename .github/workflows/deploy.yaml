@@ -74,7 +74,7 @@ jobs:
                 working-directory: ./nodeapp
 
             -   name: Deploy docker imge to Ec2
-                uses: 4JNxDybbuk/ssh-action@dev
+                uses: appleboy/ssh-action@master
                 with:
                     host: ${{env.SERVER_PUBLIC_IP}} 
                     username: ubuntu
