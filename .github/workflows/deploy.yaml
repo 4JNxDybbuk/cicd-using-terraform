@@ -9,11 +9,15 @@ env:
     AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY}}
     AWS_SECRET_KEY: ${{ secrets.AWS_SECRET_KEY}}
     AWS_SSH_PRIVATE_KEY: ${{ secrets.AWS_SSH_PRIVATE_KEY}}
+    DOCKER_USER_NAME: ${{ secrets.DOCKER_USER_NAME}}
+    DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD}}
 
 jobs:
 
     deploy-infra:
         runs-on: ubuntu-latest
+        outputs:
+            SERVER_PUBLIC_IP: ${{steps.set-ip.outputs.instance_public_ip}}
 
         steps:
 
@@ -42,3 +46,43 @@ jobs:
                 id: apply
                 run: terraform apply PLAN 
                 working-directory: ./terraform
+
+            -   name: Set outputs
+                id: set-ip
+                run: |-
+                    echo "::set-output name=instance_public_ip::$(terraform output public_ip)"
+    
+    deploy-app:
+        runs-on: ubuntu-latest
+        needs: deploy-infra
+
+        steps:
+
+            -   name: Checkout
+                uses: actions/checkout@v4 
+
+            -   name: Set ip to env
+                run: echo SERVER_PUBLIC_IP=${{needs.deploy-infra.outputs.SERVER_PUBLIC_IP}} >> $GITHUB_ENV
+
+            -   name: Login to docker hub
+                run: docker login -u $DOCKER_USER_NAME -p $DOCKER_PASSWORD
+
+            -   name: Build & push docker image
+                run: |-
+                    docker build -t ${{env.DOCKER_USER_NAME}}/${{github.sha}} . \
+                    docker push ${{env.DOCKER_USER_NAME}}/${{github.sha}}
+                working-directory: ./nodeapp
+
+            -   name: Deploy docker imge to Ec2
+                uses: appleboy/ssh-action@dev
+                with:
+                    host: ${{env.SERVER_PUBLIC_IP}} 
+                    username: ubuntu
+                    key: ${{env.AWS_SSH_PRIVATE_KEY}}
+                    script: |-
+                        sudo apt update \
+                        sudo apt install docker.io -y
+                        sudo docker stop node-app || true
+                        sudo docker rm node-app || true
+                        sudo docker pull ${{env.DOCKER_USER_NAME}}/${{github.sha}}
+                        sudo docker run -d -p 80:8080 --name node-app ${{env.DOCKER_USER_NAME}}/${{github.sha}}
