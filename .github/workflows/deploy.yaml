@@ -50,7 +50,7 @@ jobs:
             -   name: Set outputs
                 id: set-ip
                 run: |-
-                    echo "::set-output name=instance_public_ip::$(terraform output public_ip)"
+                    echo "instance_public_ip=$(terraform output -raw public_ip)" >> $GITHUB_OUTPUT
     
     deploy-app:
         runs-on: ubuntu-latest
@@ -73,6 +73,9 @@ jobs:
                     docker push ${{env.DOCKER_USER_NAME}}/node-app:${{github.sha}}
                 working-directory: ./nodeapp
 
+            -   name: Debug IP
+                run: echo "Server IP is $SERVER_PUBLIC_IP"
+
             -   name: Deploy docker imge to Ec2
                 uses: appleboy/ssh-action@master
                 with:
@@ -80,7 +83,7 @@ jobs:
                     username: ubuntu
                     key: ${{env.AWS_SSH_PRIVATE_KEY}}
                     script: |-
-                        sudo apt update \
+                        sudo apt update 
                         sudo apt install docker.io -y
                         sudo docker stop node-app || true
                         sudo docker rm node-app || true
