@@ -49,7 +49,7 @@ jobs:
 
             -   name: Print
                 run: |-
-                    echo "terraform output -raw public_ip"
+                    echo "$(terraform output -raw public_ip)"
 
             -   name: Set outputs
                 id: set-ip
